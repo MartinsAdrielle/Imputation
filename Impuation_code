@@ -132,26 +132,34 @@ bcftools concat -Oz 1filter.vcf.gz.filtered.vcf.gz 2filter.vcf.gz.filtered.vcf.g
 bcftools concat -Oz 1filter.vcf.gz 2filter.vcf.gz 3filter.vcf.gz 4filter.vcf.gz 5filter.vcf.gz 6filter.vcf.gz 7filter.vcf.gz 8filter.vcf.gz 9filter.vcf.gz 10filter.vcf.gz 11filter.vcf.gz 12filter.vcf.gz 13filter.vcf.gz 14filter.vcf.gz 15filter.vcf.gz 16filter.vcf.gz 17filter.vcf.gz 18filter.vcf.gz 19filter.vcf.gz 20filter.vcf.gz 21filter.vcf.gz 22filter.vcf.gz -o imp_bruta.vcf.gz
 
 #Converter para plink2 format (pgen, pvar, psam) - o .2 tem suporte para a conversao direta do vc.gz
-plink2 --vcf imp_bruta.vcf.gz --make-pgen --out imputacao_bruta
+plink2 --vcf imp_bruta_update_info.vcf.gz --make-pgen --out imputacao_bruta_info
 
 #Remover SNPs duplicadas
-plink2 --pfile imputacao_bruta --rm-dup exclude-all list --make-pgen --out imp_semduplicatas
+plink2 --pfile imputacao_bruta_info --rm-dup exclude-all list --make-pgen --out imp_semduplicatas
 
 #Remover indels 
 plink2 --pfile imp_semduplicatas --snps-only just-acgt --make-bed --out imp_semindels
 
+# Update ID
+plink2 --bfile imp_semindels --update-ids ../upd_id_final.txt --make-bed --out imputado_ID
+
 #Fazendo arquivo updatesex:
 awk '{print 0, $2, $5}' arquivo_imediatamente_antes_de_imputar.fam > upd_sex.txt
-paste upd_sex.txt imp_semindels.fam | awk '{print $1, $2, $6,$7,$3,$9}' > imputado_sex.fam
-cp imp_semindels.bed imputado_sex.bed
-cp imp_semindels.bim imputado_sex.bim
+plink2 --bfile imputado_ID --update-sex --make-bed imputado_ID_SEX
 
 #Fazendo arquivo fenotipo
 awk '{print 0, $2, $6}' arquivo_imediatamente_antes_de_imputar.fam > upd_pheno.txt
-plink2 --bfile imputado_sex --pheno upd_pheno.txt --make-bed imputado_sex_pheno
+plink2 --bfile imputado_ID_SEX --pheno upd_pheno.txt --make-bed imputado_ID_sex_pheno
 
-#QC final 
-plink2 --bfile imputado_sex_pheno --maf 0.01 --mind 0.1 --geno 0.1 --hwe 0.000001 --make-bed --out imputado_QC
+#QC final (troquei o MAF pelo do PGC)
+plink2 --bfile imputado_ID_sex_pheno --maf 0.05 --mind 0.1 --geno 0.1 --hwe 0.000001 --make-bed --out imputado_QC_MIchigan_infoscore
+
+#Filtrar para casos e controles 
+plink2 --bfile imputado_QC_MIchigan_infoscore --keep ./upd_pheno --make-bed --out imputado_QC_case_control_keep
+
+#Pruninng 
+plink --bfile imputado_QC_case_control_keep --indep-pairwise 1000 80 0.1 --make-bed --out imputado_QC_case_control_prunned
+
 
 
 

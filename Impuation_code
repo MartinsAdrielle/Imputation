@@ -67,7 +67,7 @@ for zf in *.zip; do unzip -P JDmuvs#nv43RWP  $zf -d dstdir/; done
 #########################
 
 #Filtrar variantes por MAF e INFO SCORE
-
+# Modo mais fácil embaixo 
 vi filterCHR1-8
 i
 bcftools filter chr1.dose.vcf.gz -e'MAF<0.01' -Oz -o 1filter.vcf.gz

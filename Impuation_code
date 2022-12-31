@@ -1,0 +1,162 @@
+#######################
+### Imputacao 1000G ###
+#######################
+## Preparation data - site michigan 
+https://imputationserver.readthedocs.io/en/latest/prepare-your-data/
+
+## Ferramenta para pre imputacao - usei a versao 4.2
+https://www.well.ox.ac.uk/~wrayner/tools/
+HRC-1000G-check-bim-v4.2.zip
+1000GP_Phase3_combined.legend.gz - nome arquivo do 1000G de referencia
+
+## Rodando arquivo de frequencia (a ferramenta exige)
+plink --freq --bfile INPD2020_todos --out INPD2020_freq
+
+## Rodando o programa 
+
+perl HRC-1000G-check-bim.pl -b ./INPD2020_todos.bim -f INPD2020_freq -r 1000GP_Phase3_combined -g -p ALL
+
+## Ele vai criar um um script pronto para a separaçao por cromossomo e alinhado com o 1000G
+./no_output
+
+## converter os vcfs em vcf.gz
+for i in `seq 1 22`; do bcftools sort INPD2020_todos_final-updated-chr${i}.vcf -Oz -o INPD2020_todos_final-updated-chr${i}.vcf.gz
+
+## indexar os vcfs
+for i in {1..22}; do echo bcftools index INPD2020_todos_final-updated-chr${i}.vcf.gz ; done >> indexar
+chmod +x ./indexar
+./indexar
+
+## normalizar os vcfs com o fasta de referencia.
+
+# ftp://ftp-trace.ncbi.nih.gov/1000genomes/ftp/technical/reference/human_g1k_v37.fasta
+
+for i in {1..22}; do echo bcftools norm -cx INPD2020_todos_final-updated-chr${i}.vcf.gz -f human_g1k_v37.fasta -o INPD2020_todos_final-updated-chr${i}.ref.vcf; done >> normalizar
+chmod +x ./normalizar
+./normalizar
+
+# Fazer o sort final.
+for i in `seq 1 22`; do vcf-sort INPD2020_todos_final-updated-chr${i}.ref.vcf| bgzip -c > chr${i}_INPD2020_fim_MICHIGAN.vcf.gz; done
+
+# Ir no servidor do michigan 
+https://imputationserver.sph.umich.edu/index.html#!
+
+# Logar e escolher na aba run - Genotype imputation (Minimac4)
+Colocar nome do job 
+Reference Panel: 1000G Phase 1 v3 Shapeit2 - hg19
+Imput files: vcfs.gz pos sort
+Phasing: Eagle v2.4
+Population: mixed
+Mode:Quality Control & Imputation 
+Clicar em AES 256 encryption 
+Submite Job
+
+######################
+### Pos imputation ###
+######################
+## Baixar - Recebe no email o link e a senha 
+curl -sL https://imputationserver.sph.umich.edu/get/2953258/b7442b6e4cdb21003c720532459611ac8e33fffec1a9396d330b403392e2f1a9 | bash
+
+## Dizipar com a senha do email
+for zf in *.zip; do unzip -P JDmuvs#nv43RWP  $zf -d dstdir/; done 
+
+# Filtrar variantes por maf
+
+#########################
+#### POST IMPUTATION ####
+#########################
+
+#Filtrar variantes por MAF e INFO SCORE
+
+vi filterCHR1-8
+i
+bcftools filter chr1.dose.vcf.gz -e'MAF<0.01' -Oz -o 1filter.vcf.gz
+bcftools filter chr2.dose.vcf.gz -e'MAF<0.01' -Oz -o 2filter.vcf.gz
+bcftools filter chr3.dose.vcf.gz -e'MAF<0.01' -Oz -o 3filter.vcf.gz
+bcftools filter chr4.dose.vcf.gz -e'MAF<0.01' -Oz -o 4filter.vcf.gz
+bcftools filter chr5.dose.vcf.gz -e'MAF<0.01' -Oz -o 5filter.vcf.gz
+bcftools filter chr6.dose.vcf.gz -e'MAF<0.01' -Oz -o 6filter.vcf.gz
+bcftools filter chr7.dose.vcf.gz -e'MAF<0.01' -Oz -o 7filter.vcf.gz
+bcftools filter chr8.dose.vcf.gz -e'MAF<0.01' -Oz -o 8filter.vcf.gz
+ESC
+:x
+
+chmod +x ./filterCHR1-8
+nohup ./filterCHR1-8 &
+
+vi filterCHR9-22
+i
+bcftools filter chr9.dose.vcf.gz -e'MAF<0.01' -Oz -o 9filter.vcf.gz
+bcftools filter chr10.dose.vcf.gz -e'MAF<0.01' -Oz -o 10filter.vcf.gz
+bcftools filter chr11.dose.vcf.gz -e'MAF<0.01' -Oz -o 11filter.vcf.gz
+bcftools filter chr12.dose.vcf.gz -e'MAF<0.01' -Oz -o 12filter.vcf.gz
+bcftools filter chr13.dose.vcf.gz -e'MAF<0.01' -Oz -o 13filter.vcf.gz
+bcftools filter chr14.dose.vcf.gz -e'MAF<0.01' -Oz -o 14filter.vcf.gz
+bcftools filter chr15.dose.vcf.gz -e'MAF<0.01' -Oz -o 15filter.vcf.gz
+bcftools filter chr16.dose.vcf.gz -e'MAF<0.01' -Oz -o 16filter.vcf.gz
+bcftools filter chr17.dose.vcf.gz -e'MAF<0.01' -Oz -o 17filter.vcf.gz
+bcftools filter chr18.dose.vcf.gz -e'MAF<0.01' -Oz -o 18filter.vcf.gz
+bcftools filter chr19.dose.vcf.gz -e'MAF<0.01' -Oz -o 19filter.vcf.gz
+bcftools filter chr20.dose.vcf.gz -e'MAF<0.01' -Oz -o 20filter.vcf.gz
+bcftools filter chr21.dose.vcf.gz -e'MAF<0.01' -Oz -o 21filter.vcf.gz
+bcftools filter chr22.dose.vcf.gz -e'MAF<0.01' -Oz -o 22filter.vcf.gz
+ESC
+:x
+
+chmod +x ./filterCHR9-22
+nohup ./filterCHR9-22 &
+
+#Mais prático assim 
+# Testar 
+for file in $(ls *.dose.vcf.gz); do bcftools view -i 'R2>.8 & MAF<0.01' -Oz -o $file > $file.filtered.vcf.gz; done
+
+# Usei esse
+for file in $(ls *.dose.vcf.gz); do bcftools view -i 'R2>.8' -Oz -o $file > $file.filtered.vcf.gz; done
+
+#Estudar o pq desse comando 
+#for file in $(ls *filter.vcf.gz); do bcftools view -i 'R2>.9' -Oz $file > ./IC/$file.filtered.vcf.gz; tabix -p vcf ./IC/$file.filtered.vcf.gz; done
+
+#Concatenar os vcfs
+#for file in $(ls *.filtered.vcf.gz); do bcftools concat -Oz $file -o imp_bruta_update_infoscore.vcf.gz ; done
+
+bcftools concat -Oz 1filter.vcf.gz.filtered.vcf.gz 2filter.vcf.gz.filtered.vcf.gz 
+3filter.vcf.gz.filtered.vcf.gz 4filter.vcf.gz.filtered.vcf.gz 5filter.vcf.gz.filtered.vcf.gz 
+6filter.vcf.gz.filtered.vcf.gz 7filter.vcf.gz.filtered.vcf.gz 8filter.vcf.gz.filtered.vcf.gz 
+9filter.vcf.gz.filtered.vcf.gz 10filter.vcf.gz.filtered.vcf.gz 11filter.vcf.gz.filtered.vcf.gz 
+12filter.vcf.gz.filtered.vcf.gz 13filter.vcf.gz.filtered.vcf.gz 14filter.vcf.gz.filtered.vcf.gz 
+15filter.vcf.gz.filtered.vcf.gz 16filter.vcf.gz.filtered.vcf.gz 17filter.vcf.gz.filtered.vcf.gz 
+18filter.vcf.gz.filtered.vcf.gz 19filter.vcf.gz.filtered.vcf.gz 20filter.vcf.gz.filtered.vcf.gz 
+21filter.vcf.gz.filtered.vcf.gz 22filter.vcf.gz.filtered.vcf.gz -o imp_bruta_update_info.vcf.gz
+
+#juntando todos os arquivos
+bcftools concat -Oz 1filter.vcf.gz 2filter.vcf.gz 3filter.vcf.gz 4filter.vcf.gz 5filter.vcf.gz 6filter.vcf.gz 7filter.vcf.gz 8filter.vcf.gz 9filter.vcf.gz 10filter.vcf.gz 11filter.vcf.gz 12filter.vcf.gz 13filter.vcf.gz 14filter.vcf.gz 15filter.vcf.gz 16filter.vcf.gz 17filter.vcf.gz 18filter.vcf.gz 19filter.vcf.gz 20filter.vcf.gz 21filter.vcf.gz 22filter.vcf.gz -o imp_bruta.vcf.gz
+
+#Converter para plink2 format (pgen, pvar, psam) - o .2 tem suporte para a conversao direta do vc.gz
+plink2 --vcf imp_bruta.vcf.gz --make-pgen --out imputacao_bruta
+
+#Remover SNPs duplicadas
+plink2 --pfile imputacao_bruta --rm-dup exclude-all list --make-pgen --out imp_semduplicatas
+
+#Remover indels 
+plink2 --pfile imp_semduplicatas --snps-only just-acgt --make-bed --out imp_semindels
+
+#Fazendo arquivo updatesex:
+awk '{print 0, $2, $5}' arquivo_imediatamente_antes_de_imputar.fam > upd_sex.txt
+paste upd_sex.txt imp_semindels.fam | awk '{print $1, $2, $6,$7,$3,$9}' > imputado_sex.fam
+cp imp_semindels.bed imputado_sex.bed
+cp imp_semindels.bim imputado_sex.bim
+
+#Fazendo arquivo fenotipo
+awk '{print 0, $2, $6}' arquivo_imediatamente_antes_de_imputar.fam > upd_pheno.txt
+plink2 --bfile imputado_sex --pheno upd_pheno.txt --make-bed imputado_sex_pheno
+
+#QC final 
+plink2 --bfile imputado_sex_pheno --maf 0.01 --mind 0.1 --geno 0.1 --hwe 0.000001 --make-bed --out imputado_QC
+
+
+
+
+
+
+
+

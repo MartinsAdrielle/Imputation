@@ -58,7 +58,7 @@ Submite Job
 curl -sL https://imputationserver.sph.umich.edu/get/2953258/b7442b6e4cdb21003c720532459611ac8e33fffec1a9396d330b403392e2f1a9 | bash
 
 ## Dizipar com a senha do email
-for zf in *.zip; do unzip -P JDmuvs#nv43RWP  $zf -d dstdir/; done 
+for zf in *.zip; do unzip -P JDmuvs #nv43RWP  $zf -d dstdir/; done 
 
 # Filtrar variantes por maf
 
@@ -117,8 +117,6 @@ for file in $(ls *.dose.vcf.gz); do bcftools view -i 'R2>.8' -Oz -o $file > $fil
 #for file in $(ls *filter.vcf.gz); do bcftools view -i 'R2>.9' -Oz $file > ./IC/$file.filtered.vcf.gz; tabix -p vcf ./IC/$file.filtered.vcf.gz; done
 
 #Concatenar os vcfs
-#for file in $(ls *.filtered.vcf.gz); do bcftools concat -Oz $file -o imp_bruta_update_infoscore.vcf.gz ; done
-
 bcftools concat -Oz 1filter.vcf.gz.filtered.vcf.gz 2filter.vcf.gz.filtered.vcf.gz 
 3filter.vcf.gz.filtered.vcf.gz 4filter.vcf.gz.filtered.vcf.gz 5filter.vcf.gz.filtered.vcf.gz 
 6filter.vcf.gz.filtered.vcf.gz 7filter.vcf.gz.filtered.vcf.gz 8filter.vcf.gz.filtered.vcf.gz 
@@ -127,9 +125,6 @@ bcftools concat -Oz 1filter.vcf.gz.filtered.vcf.gz 2filter.vcf.gz.filtered.vcf.g
 15filter.vcf.gz.filtered.vcf.gz 16filter.vcf.gz.filtered.vcf.gz 17filter.vcf.gz.filtered.vcf.gz 
 18filter.vcf.gz.filtered.vcf.gz 19filter.vcf.gz.filtered.vcf.gz 20filter.vcf.gz.filtered.vcf.gz 
 21filter.vcf.gz.filtered.vcf.gz 22filter.vcf.gz.filtered.vcf.gz -o imp_bruta_update_info.vcf.gz
-
-#juntando todos os arquivos
-bcftools concat -Oz 1filter.vcf.gz 2filter.vcf.gz 3filter.vcf.gz 4filter.vcf.gz 5filter.vcf.gz 6filter.vcf.gz 7filter.vcf.gz 8filter.vcf.gz 9filter.vcf.gz 10filter.vcf.gz 11filter.vcf.gz 12filter.vcf.gz 13filter.vcf.gz 14filter.vcf.gz 15filter.vcf.gz 16filter.vcf.gz 17filter.vcf.gz 18filter.vcf.gz 19filter.vcf.gz 20filter.vcf.gz 21filter.vcf.gz 22filter.vcf.gz -o imp_bruta.vcf.gz
 
 #Converter para plink2 format (pgen, pvar, psam) - o .2 tem suporte para a conversao direta do vc.gz
 plink2 --vcf imp_bruta_update_info.vcf.gz --make-pgen --out imputacao_bruta_info
@@ -158,7 +153,11 @@ plink2 --bfile imputado_ID_sex_pheno --maf 0.05 --mind 0.1 --geno 0.1 --hwe 0.00
 plink2 --bfile imputado_QC_MIchigan_infoscore --keep ./upd_pheno --make-bed --out imputado_QC_case_control_keep
 
 #Pruninng 
-plink --bfile imputado_QC_case_control_keep --indep-pairwise 1000 80 0.1 --make-bed --out imputado_QC_case_control_prunned
+plink --bfile imputado_QC_case_control_keep --indep-pairwise 1000 80 0.1 
+
+# keep variants 
+plink --bfile imputado_QC_case_control_keep --keep plink.prune.in --make-bed --out imputado_QC_case_control_prunned
+
 
 
 

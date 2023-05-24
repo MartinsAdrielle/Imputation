@@ -106,12 +106,10 @@ ESC
 chmod +x ./filterCHR9-22
 nohup ./filterCHR9-22 &
 
-#Mais prático assim 
-# Testar 
-for file in $(ls *.dose.vcf.gz); do bcftools view -i 'R2>.8 & MAF<0.01' -Oz -o $file > $file.filtered.vcf.gz; done
-
 # Usei esse
 for file in $(ls *.dose.vcf.gz); do bcftools view -i 'R2>.8' -Oz -o $file > $file.filtered.vcf.gz; done
+# For PGC 
+for file in $(ls *.dose.vcf.gz); do bcftools view -i 'R2>.7' -Oz -o $file > $file.filtered.vcf.gz; done
 
 #Estudar o pq desse comando 
 #for file in $(ls *filter.vcf.gz); do bcftools view -i 'R2>.9' -Oz $file > ./IC/$file.filtered.vcf.gz; tabix -p vcf ./IC/$file.filtered.vcf.gz; done
@@ -136,11 +134,11 @@ plink2 --pfile imputacao_bruta_info --rm-dup exclude-all list --make-pgen --out 
 plink2 --pfile imp_semduplicatas --snps-only just-acgt --make-bed --out imp_semindels
 
 # Update ID
-plink2 --bfile imp_semindels --update-ids ../upd_id_final.txt --make-bed --out imputado_ID
+plink2 --bfile imp_semindels --update-ids ./upd_id_final.txt --make-bed --out imputado_ID
 
 #Fazendo arquivo updatesex:
 awk '{print 0, $2, $5}' arquivo_imediatamente_antes_de_imputar.fam > upd_sex.txt
-plink2 --bfile imputado_ID --update-sex --make-bed imputado_ID_SEX
+plink2 --bfile imputado_ID --update-sex ./upd_sex --make-bed imputado_ID_SEX
 
 #Fazendo arquivo fenotipo
 awk '{print 0, $2, $6}' arquivo_imediatamente_antes_de_imputar.fam > upd_pheno.txt
